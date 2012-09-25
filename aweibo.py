@@ -1,5 +1,5 @@
 import sublime, sublime_plugin
-import json, webbrowser, time, os
+import json, webbrowser, time, os, sys
 from weibosdk import APIClient, APIError
 
 APP_KEY = '2596542044'
@@ -7,18 +7,29 @@ GET_CODE_URL = 'http://sublime.duapp.com/weibo/authorize_redirect.php'
 CALLBACK_URL = 'http://sublime.duapp.com/weibo/callback.php'
 ACCESS_TOKEN_FILE = os.path.join(os.getcwd(), 'access_token')
 
+#reload(sys) 
+#sys.setdefaultencoding('utf8')
+
 wb = APIClient(APP_KEY, None, CALLBACK_URL)
 
-def do_weibo_error(weibo, errcode):
+def do_weibo_error(weibo, errcode, recall = False):
 	if errcode == 21327 or errcode == 21501	or 21313 < errcode < 21318:
+		# if not recall:
+		# 	weibo.get_local_token()
+		# 	do_weibo_error(weibo, errcode, True)
+
+		print weibo.access_token
+
 		if sublime.ok_cancel_dialog("ACCESS TOKEN error!\n(Error No. : " + str(errcode) + ")\nGet a new token?", 'yes'):
-			self.get_token()
+			weibo.get_token()
 	else :
 		sublime.error_message('Error No. :' + str(error_code))
 
 class weibo:
 	def __init__(self):
+		self.get_local_token()
 
+	def get_local_token(self):
 		access_token_file = open(ACCESS_TOKEN_FILE)
 		token = access_token_file.read()
 		access_token_file.close()
@@ -55,18 +66,18 @@ class weibo:
 		else :
 			self.set_token(text)
 
-	def send(self, text):		
-		try:
-			sublime.status_message("Sending...!")
-			wb.post.statuses__update(status = text)
-		except APIError,data:
-			do_weibo_error(self, int(data.error_code))
-				
-		except:
-			sublime.error_message("Unknow error!")
-		else:
-			sublime.status_message("Status has been sent!")
-			return True
+	def send(self, text):
+		if 0 < len(text) <= 140:
+			try:
+				sublime.status_message("Sending...!")
+				wb.post.statuses__update(status = text)
+			except APIError,data:
+				do_weibo_error(self, int(data.error_code))					
+			except:
+				sublime.error_message("Unknow error!")
+			else:
+				sublime.status_message("Status has been sent!")
+				return True
 
 	def get_timlines(self, format = False):
 		ret = {}
