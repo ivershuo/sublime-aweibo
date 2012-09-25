@@ -7,6 +7,7 @@ GET_CODE_URL = 'http://sublime.duapp.com/weibo/authorize_redirect.php'
 CALLBACK_URL = 'http://sublime.duapp.com/weibo/callback.php'
 ACCESS_TOKEN_FILE = os.path.join(os.getcwd(), 'access_token')
 
+
 #reload(sys) 
 #sys.setdefaultencoding('utf8')
 
@@ -14,16 +15,39 @@ wb = APIClient(APP_KEY, None, CALLBACK_URL)
 
 def do_weibo_error(weibo, errcode, recall = False):
 	if errcode == 21327 or errcode == 21501	or 21313 < errcode < 21318:
-		# if not recall:
-		# 	weibo.get_local_token()
-		# 	do_weibo_error(weibo, errcode, True)
-
-		print weibo.access_token
-
 		if sublime.ok_cancel_dialog("ACCESS TOKEN error!\n(Error No. : " + str(errcode) + ")\nGet a new token?", 'yes'):
 			weibo.get_token()
 	else :
 		sublime.error_message('Error No. :' + str(error_code))
+
+def format_statuses(source_statuses):
+	statuses = []
+	for status in source_statuses["statuses"]:
+		if "deleted" in status and int(status["deleted"]) == 1:
+			continue
+		status_obj = {
+			"id" : status["id"],
+			"user" : status["user"]["name"],
+			"status" : status["text"]
+		}
+		if "retweeted_status" in status:
+			if "deleted" in status["retweeted_status"] and int(status["retweeted_status"]["deleted"]) == 1:
+				continue
+			retweeted_status_obj = {
+				"id" : status["retweeted_status"]["id"],
+				"user" : status["retweeted_status"]["user"]["name"],
+				"status" : status["retweeted_status"]["text"]
+			}
+			if "original_pic" in status["retweeted_status"]:
+				retweeted_status_obj["with_pic"] = status["retweeted_status"]["original_pic"]
+			
+			status_obj["z"] = retweeted_status_obj
+
+		if "original_pic" in status:
+				status_obj["with_pic"] = status["original_pic"]
+
+		statuses.append(status_obj)
+	return statuses
 
 class weibo:
 	def __init__(self):
@@ -46,9 +70,9 @@ class weibo:
 			access_token_file.write(token)
 			access_token_file.close()
 		except IOError:
-			sublime.status_message("Write token_file error!")
+			sublime.status_message('Write token_file error!')
 		else:
-			sublime.status_message("TOKEN Saved.")
+			sublime.status_message('TOKEN Saved.')
 		finally:
 			wb.set_access_token(token, time.time() + 1209600)
 
@@ -81,20 +105,13 @@ class weibo:
 
 	def get_timlines(self, format = False):
 		ret = {}
+		sublime.status_message("Getting status...")
 		try:
 			ret = wb.get.statuses__home_timeline()
 
 			if format :
-				statuses = []
-				for status in ret["statuses"]:
-					status_obj = {
-						"id" : status["id"],
-						"user" : status["user"]["name"],
-						"status" : status["text"]
-					}
-					statuses.append(status_obj)
+				ret = format_statuses(ret)
 
-				ret = statuses
 		except APIError,data:
 			do_weibo_error(self, int(data.error_code))
 		except:
@@ -102,3 +119,19 @@ class weibo:
 		finally:
 			return json.dumps(ret, sort_keys=True, indent=4, ensure_ascii=False)
 
+	def get_at_me(self, format = False):
+		ret = {}
+		sublime.status_message("Getting at me status...")
+
+		try:
+			ret = wb.get.statuses__mentions()
+
+			if format :
+				ret = format_statuses(ret)
+
+		except APIError,data:
+			do_weibo_error(self, int(data.error_code))
+		except:
+			sublime.error_message("Unknow error!")
+		finally:
+			return json.dumps(ret, sort_keys=True, indent=4, ensure_ascii=False)
