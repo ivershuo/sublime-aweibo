@@ -52,6 +52,8 @@ def format_statuses(source_statuses):
 class weibo:
 	def __init__(self):
 		self.get_local_token()
+		self.get = wb.get
+		self.post = wb.post
 
 	def get_local_token(self):
 		access_token_file = open(ACCESS_TOKEN_FILE)
@@ -103,11 +105,11 @@ class weibo:
 				sublime.status_message("Status has been sent!")
 				return True
 
-	def get_timlines(self, format = False):
+	def get_tweets(self, func, format, **kw):
 		ret = {}
 		sublime.status_message("Getting status...")
 		try:
-			ret = wb.get.statuses__home_timeline()
+			ret = func(**kw)
 
 			if format :
 				ret = format_statuses(ret)
@@ -119,19 +121,9 @@ class weibo:
 		finally:
 			return json.dumps(ret, sort_keys=True, indent=4, ensure_ascii=False)
 
-	def get_at_me(self, format = False):
-		ret = {}
-		sublime.status_message("Getting at me status...")
 
-		try:
-			ret = wb.get.statuses__mentions()
+	def get_timlines(self, format = False, **kw):
+		return self.get_tweets(wb.get.statuses__home_timeline, format, **kw)
 
-			if format :
-				ret = format_statuses(ret)
-
-		except APIError,data:
-			do_weibo_error(self, int(data.error_code))
-		except:
-			sublime.error_message("Unknow error!")
-		finally:
-			return json.dumps(ret, sort_keys=True, indent=4, ensure_ascii=False)
+	def get_at_me(self, format = False, **kw):
+		return self.get_tweets(wb.get.statuses__mentions, format, **kw)
