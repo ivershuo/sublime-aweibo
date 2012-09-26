@@ -110,15 +110,13 @@ class weibo:
 		sublime.status_message("Getting status...")
 		try:
 			ret = func(**kw)
-
-			if format :
-				ret = format_statuses(ret)
-
 		except APIError,data:
 			do_weibo_error(self, int(data.error_code))
 		except:
 			sublime.error_message("Unknow error!")
 		finally:
+			if format :
+				ret = format_statuses(ret)
 			return json.dumps(ret, sort_keys=True, indent=4, ensure_ascii=False)
 
 
