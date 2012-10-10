@@ -1,6 +1,6 @@
 import sublime, sublime_plugin
 import json, webbrowser, time, os, sys
-from weibosdk import APIClient, APIError
+from aaweibosdk import APIClient, APIError
 
 APP_KEY = '2596542044'
 GET_CODE_URL = 'http://sublime.duapp.com/weibo/authorize_redirect.php'
@@ -66,22 +66,23 @@ class weibo:
 		access_token_file.close()
 
 		if token:
-			self.set_token(token)
+			self.set_token(token, False)
 
-	def set_token(self, token = ''):
+	def set_token(self, token = '', wtf = True):
 		if not token:
 			return
 
-		try:
-			access_token_file = open(ACCESS_TOKEN_FILE, 'w')
-			access_token_file.write(token)
-			access_token_file.close()
-		except IOError:
-			sublime.status_message('Write token_file error!')
-		else:
-			sublime.status_message('TOKEN Saved.')
-		finally:
-			wb.set_access_token(token, time.time() + 1209600)
+		if wtf:
+			try:
+				access_token_file = open(ACCESS_TOKEN_FILE, 'w')
+				access_token_file.write(token)
+				access_token_file.close()
+			except IOError:
+				sublime.status_message('Write token_file error!')
+			else:
+				sublime.status_message('TOKEN Saved.')
+		
+		wb.set_access_token(token, time.time() + 1209600)
 
 	def get_token(self, open_browser = True):
 		if open_browser:
@@ -118,7 +119,7 @@ class weibo:
 		except APIError,data:
 			do_weibo_error(self, int(data.error_code))
 		except:
-			sublime.error_message("Unknow error!")
+		 	sublime.error_message("Unknow error!")
 		finally:
 			if format :
 				ret = format_statuses(ret[key])
