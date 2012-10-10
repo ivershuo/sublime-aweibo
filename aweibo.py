@@ -22,13 +22,14 @@ def do_weibo_error(weibo, errcode, recall = False):
 
 def format_statuses(source_statuses):
 	statuses = []
-	for status in source_statuses["statuses"]:
+	for status in source_statuses:
 		if "deleted" in status and int(status["deleted"]) == 1:
 			continue
 		status_obj = {
 			"id" : status["id"],
 			"user" : status["user"]["name"],
-			"status" : status["text"]
+			"status" : status["text"],
+			"time" : status["created_at"]
 		}
 		if "retweeted_status" in status:
 			if "deleted" in status["retweeted_status"] and int(status["retweeted_status"]["deleted"]) == 1:
@@ -36,12 +37,16 @@ def format_statuses(source_statuses):
 			retweeted_status_obj = {
 				"id" : status["retweeted_status"]["id"],
 				"user" : status["retweeted_status"]["user"]["name"],
-				"status" : status["retweeted_status"]["text"]
+				"status" : status["retweeted_status"]["text"],
+				"time" : status["retweeted_status"]["created_at"]
 			}
 			if "original_pic" in status["retweeted_status"]:
 				retweeted_status_obj["with_pic"] = status["retweeted_status"]["original_pic"]
 			
 			status_obj["z"] = retweeted_status_obj
+
+		if "status" in status:
+			status_obj["z"] = status["status"]["text"]
 
 		if "original_pic" in status:
 				status_obj["with_pic"] = status["original_pic"]
@@ -105,7 +110,7 @@ class weibo:
 				sublime.status_message("Status has been sent!")
 				return True
 
-	def get_tweets(self, func, format, **kw):
+	def get_tweets(self, func, key, format, **kw):
 		ret = {}
 		sublime.status_message("Getting status...")
 		try:
@@ -116,12 +121,15 @@ class weibo:
 			sublime.error_message("Unknow error!")
 		finally:
 			if format :
-				ret = format_statuses(ret)
+				ret = format_statuses(ret[key])
 			return json.dumps(ret, sort_keys=True, indent=4, ensure_ascii=False)
 
 
 	def get_timlines(self, format = False, **kw):
-		return self.get_tweets(wb.get.statuses__home_timeline, format, **kw)
+		return self.get_tweets(wb.get.statuses__home_timeline, "statuses", format, **kw)
 
 	def get_at_me(self, format = False, **kw):
-		return self.get_tweets(wb.get.statuses__mentions, format, **kw)
+		return self.get_tweets(wb.get.statuses__mentions, "statuses", format, **kw)
+
+	def get_to_me(self, format = False, **kw):
+		return self.get_tweets(wb.get.comments__to_me, "comments", format, **kw)
