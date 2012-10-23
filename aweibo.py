@@ -105,8 +105,8 @@ class weibo:
 				wb.post.statuses__update(status = text)
 			except APIError,data:
 				do_weibo_error(self, int(data.error_code))					
-			except:
-				sublime.error_message("Unknow error!")
+			except Exception as e:
+		 		sublime.error_message(str(e))
 			else:
 				sublime.status_message("Status has been sent!")
 				return True
@@ -116,15 +116,13 @@ class weibo:
 		sublime.status_message("Getting status...")
 		try:
 			ret = func(**kw)
-		except APIError,data:
-			do_weibo_error(self, int(data.error_code))
-		except:
-		 	sublime.error_message("Unknow error!")
-		finally:
 			if format :
 				ret = format_statuses(ret[key])
 			return json.dumps(ret, sort_keys=True, indent=4, ensure_ascii=False)
-
+		except APIError,data:
+			do_weibo_error(self, int(data.error_code))
+		except Exception as e:
+		 	sublime.error_message(str(e))
 
 	def get_timlines(self, format = False, **kw):
 		return self.get_tweets(wb.get.statuses__home_timeline, "statuses", format, **kw)
