@@ -7,11 +7,8 @@ GET_CODE_URL = 'http://sublime.duapp.com/weibo/authorize_redirect.php'
 CALLBACK_URL = 'http://sublime.duapp.com/weibo/callback.php'
 ACCESS_TOKEN_FILE = os.path.join(os.getcwd(), 'access_token')
 
-
 #reload(sys) 
 #sys.setdefaultencoding('utf8')
-
-wb = APIClient(APP_KEY, None, CALLBACK_URL)
 
 def do_weibo_error(weibo, errcode, recall = False):
 	if errcode == 21327 or errcode == 21501	or 21313 < errcode < 21318:
@@ -56,9 +53,10 @@ def format_statuses(source_statuses):
 
 class weibo:
 	def __init__(self):
+		self.wb = APIClient(APP_KEY, None, CALLBACK_URL)
 		self.get_local_token()
-		self.get = wb.get
-		self.post = wb.post
+		self.get = self.wb.get
+		self.post = self.wb.post
 
 	def get_local_token(self):
 		access_token_file = open(ACCESS_TOKEN_FILE)
@@ -82,7 +80,7 @@ class weibo:
 			else:
 				sublime.status_message('TOKEN Saved.')
 		
-		wb.set_access_token(token, time.time() + 1209600)
+		self.wb.set_access_token(token, time.time() + 1209600)
 
 	def get_token(self, open_browser = True):
 		if open_browser:
@@ -102,7 +100,7 @@ class weibo:
 		if 0 < len(text) <= 140:
 			try:
 				sublime.status_message("Sending...!")
-				wb.post.statuses__update(status = text)
+				self.wb.post.statuses__update(status = text)
 			except APIError,data:
 				do_weibo_error(self, int(data.error_code))					
 			except Exception as e:
@@ -125,10 +123,10 @@ class weibo:
 		 	sublime.error_message(str(e))
 
 	def get_timlines(self, format = False, **kw):
-		return self.get_tweets(wb.get.statuses__home_timeline, "statuses", format, **kw)
+		return self.get_tweets(self.wb.get.statuses__home_timeline, "statuses", format, **kw)
 
 	def get_at_me(self, format = False, **kw):
-		return self.get_tweets(wb.get.statuses__mentions, "statuses", format, **kw)
+		return self.get_tweets(self.wb.get.statuses__mentions, "statuses", format, **kw)
 
 	def get_to_me(self, format = False, **kw):
-		return self.get_tweets(wb.get.comments__to_me, "comments", format, **kw)
+		return self.get_tweets(self.wb.get.comments__to_me, "comments", format, **kw)
